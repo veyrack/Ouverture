@@ -15,8 +15,8 @@ let rec extraction_alea l p = let size = List.length l in
       let tmp = List.nth l r in
         extraction_alea  (remove tmp l) (tmp :: p);;
 
-(*TEST*)
-(*let x = [1;5;6;2;3] in
+(*TEST
+let x = [1;5;6;2;3] in
   print_list (extraction_alea x []);
 *)
 
@@ -25,10 +25,56 @@ let rec interval n m = if n = m
     then [m]
     else n :: interval (n+1) m;;
 
-(*Genere une liste triee d'enter de 1 a n puis utilise extraction_alea avec cette liste et une liste vide*)
+(*Genere une liste triee d'enter de 1 a n puis
+utilise extraction_alea avec cette liste et une liste vide*)
 let gen_permutation n = let l =interval 1 n in
   let p = [] in
     extraction_alea l p;;
 
-(*TEST*)
+(*TEST
 print_list (gen_permutation 4);;
+*)
+
+(*Definition du type 'a abr*)
+type 'a abr = |Empty
+              |Node of {etq : 'a ;fg : 'a abr;fd : 'a abr};;
+
+(*TEST
+let x = Node {etq = 1;fg = Empty;fd = Empty} in
+  match x with
+  | Node(n) -> print_int n.etq
+  | _ -> () ;;
+*)
+
+(*Affiche l'abr*)
+let rec print_abr abr = match abr with
+| Empty -> print_string "<Empty>"
+| Node(n) -> print_string "<";
+            print_int n.etq;
+            print_string " fg:";
+            print_abr n.fg ;
+            print_string " fd:";
+            print_abr n.fd;
+            print_string ">";;
+
+(*Insere l'element e dans l'arbre abr*)
+let rec inserer e abr = match abr with
+  | Empty -> Node {etq = e;fg = Empty;fd= Empty}
+  | Node(n) -> if e<n.etq
+    then Node {etq=n.etq;fg = (inserer e n.fg); fd = n.fd}
+    else Node {etq=n.etq;fg = n.fg ; fd = (inserer e n.fd)};;
+
+(*TEST
+let x = Node {etq = 1;fg = Empty;fd = Empty} in
+  print_abr (inserer 2 x) ;;
+*)
+
+(*Construit l'abr a partir de la liste l*)
+let construc l = let empt = Empty in
+  let rec aux l abr = if l = []
+    then abr
+    else aux (List.tl l) (inserer (List.hd l) abr) in aux l empt;;
+    
+(*TEST
+print_abr (construc [4;2;3;8;1;9;6;7;5]);;
+*)
