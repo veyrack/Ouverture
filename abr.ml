@@ -74,7 +74,38 @@ let construc l = let empt = Empty in
   let rec aux l abr = if l = []
     then abr
     else aux (List.tl l) (inserer (List.hd l) abr) in aux l empt;;
-    
+
 (*TEST
 print_abr (construc [4;2;3;8;1;9;6;7;5]);;
 *)
+
+(* Renvoi l'arbre sous forme parenthese*)
+let parenth abr=
+  let rec test tree = match tree with
+      |Empty ->"()"
+      |Node(n)->"("^(test n.fg)^")"^(test n.fd) in test abr;;
+
+(*TEST
+print_string (parenth (construc [4;2;3;8;1]));;
+*)
+(*Retourne la hauteur d'un arbre*)
+let getHauteur abr = 1
+;;
+
+let unique =
+  let last = ref 0 in
+  fun () -> incr last ; !last;;
+
+let one = unique ();;  (* 1 *)
+
+let two = unique ();;  (* 2 *)
+
+let three = unique ();;  (* 2 *)
+print_int three;;
+(*
+let getHash abr = let pa = parenth abr in
+  let h = Hashtbl.create (getHauteur abr) in
+    Hashtbl.add h
+    let rec parcours hash par = match par with
+    | [] -> expr
+    | _ -> expr2*)
