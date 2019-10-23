@@ -89,23 +89,37 @@ let parenth abr=
 print_string (parenth (construc [4;2;3;8;1]));;
 *)
 (*Retourne la hauteur d'un arbre*)
-let getHauteur abr = 1
-;;
+let rec getHauteur abr = match abr with
+  |Empty -> 0
+  |Node(n) -> max (1+getHauteur n.fg) (1+getHauteur n.fd);;
 
+
+(*TEST
+print_int (getHauteur (construc [4;2;1;3;8;6;5;7;9]));;
+*)
+
+(*Retourne un entier unique incremente a chaque appel*)
 let unique =
   let last = ref 0 in
   fun () -> incr last ; !last;;
 
+(*Test
 let one = unique ();;  (* 1 *)
 
 let two = unique ();;  (* 2 *)
 
-let three = unique ();;  (* 2 *)
+let three = unique ();;  (* 3 *)
 print_int three;;
-(*
+*)
+
+(*Remplace dans l'expression parenthese P les mat par rep*)
+let replace P mat rep =
+;;
+
+
 let getHash abr = let pa = parenth abr in
   let h = Hashtbl.create (getHauteur abr) in
-    Hashtbl.add h
+    Hashtbl.add h unique() "()" in
     let rec parcours hash par = match par with
     | [] -> expr
-    | _ -> expr2*)
+    | _ -> expr2
