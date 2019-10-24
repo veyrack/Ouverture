@@ -82,11 +82,12 @@ print_abr (construc [4;2;3;8;1;9;6;7;5]);;
 (* Renvoi l'arbre sous forme parenthese*)
 let parenth abr=
   let rec test tree = match tree with
-      |Empty ->"()"
+      |Empty ->""
       |Node(n)->"("^(test n.fg)^")"^(test n.fd) in test abr;;
 
 (*TEST
-print_string (parenth (construc [4;2;3;8;1]));;
+print_string (parenth (construc [4;2;3;8;1;9;6;7;5]));;
+print_string "\n";;
 *)
 (*Retourne la hauteur d'un arbre*)
 let rec getHauteur abr = match abr with
@@ -113,13 +114,32 @@ print_int three;;
 *)
 
 (*Remplace dans l'expression parenthese P les mat par rep*)
-let replace P mat rep =
-;;
+let replace expr mat rep = Str.global_replace mat rep expr;;
 
+(*Parcours l'expression parenthese par et ajoute les pattern du type (int)int dans la table hash et renvoi hash *)
+let rec parcours hash par =
+  (*Printf.printf "%s \n" par ;*)
+  if (Str.string_match (Str.regexp "^([0-9]+)[0-9]+$") par 0)
+    then (Hashtbl.add hash (unique()) (Str.matched_string par); hash)
+    else
+      let _ = Str.search_forward (Str.regexp "([0-9]+)[0-9]+") par 0 in
+        let tmp = Str.matched_string par in
+          let key = unique() in
+            Hashtbl.add hash key tmp;
+            parcours hash (replace par (Str.regexp_string (Hashtbl.find hash key)) (string_of_int key));;
 
-let getHash abr = let pa = parenth abr in
+(*Retourne la table de hashage pour l'arbre abr*)
+let getHash abr =
   let h = Hashtbl.create (getHauteur abr) in
-    Hashtbl.add h unique() "()" in
-    let rec parcours hash par = match par with
-    | [] -> expr
-    | _ -> expr2
+    let uni=unique() in
+      Hashtbl.add h uni "()";
+      (*Printf.printf "%s \n" (parenth abr);*)
+      let pa= replace (parenth abr) (Str.regexp "()") (string_of_int uni) in
+        (*Printf.printf "%s \n" pa;*)
+        parcours h pa;;
+
+
+(*TEST
+let x = getHash (construc [4;2;3;8;1;9;6;7;5]) in
+  print_string (Hashtbl.find x 4);;
+*)
