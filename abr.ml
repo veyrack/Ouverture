@@ -147,3 +147,10 @@ let x = getHash (construc [4;2;3;8;1;9;6;7;5]) in
 (*Recupere le fils gauche/droit dans l'expression de la hashtable*)
 let filsG h key = let v=(Hashtbl.find h key) in String.get v 1;;
 let filsD h key = let v=(Hashtbl.find h key) in String.get v 3;; (*return char*)
+
+(*
+(*Generateur de symbole et son reset*)
+let reset_s, symbol = let c = ref 0 in
+  ( function () -> c:=0),
+  ( function () -> c:=!c+1; "SYMB"^(string_of_int !c) );; (*ex: SYMB1*)
+*)
