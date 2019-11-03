@@ -143,3 +143,7 @@ let getHash abr =
 let x = getHash (construc [4;2;3;8;1;9;6;7;5]) in
   print_string (Hashtbl.find x 4);;
 *)
+
+(*Recupere le fils gauche/droit dans l'expression de la hashtable*)
+let filsG h key = let v=(Hashtbl.find h key) in String.get v 1;;
+let filsD h key = let v=(Hashtbl.find h key) in String.get v 3;; (*return char*)
