@@ -39,6 +39,7 @@ print_list (gen_permutation 4);;
 type 'a abr = |Empty
               |Node of {etq : 'a ;fg : 'a abr;fd : 'a abr};;
 
+
 (*TEST
 let x = Node {etq = 1;fg = Empty;fd = Empty} in
   match x with
@@ -148,9 +149,90 @@ let x = getHash (construc [4;2;3;8;1;9;6;7;5]) in
 let filsG h key = let v=(Hashtbl.find h key) in String.get v 1;;
 let filsD h key = let v=(Hashtbl.find h key) in String.get v 3;; (*return char*)
 
-(*
+
 (*Generateur de symbole et son reset*)
-let reset_s, symbol = let c = ref 0 in
+let reset_s, generate_symbol = let c = ref 0 in
   ( function () -> c:=0),
   ( function () -> c:=!c+1; "SYMB"^(string_of_int !c) );; (*ex: SYMB1*)
+
+
+type 'a noeud = |Etq of int
+                |Couple of {etq : int; liste : string list};;
+(*TEST
+let y = Couple {etq = 1;liste=["1";"2";"3"]} in
+match y with
+    |Couple(n) -> print_string (List.hd n.liste)
+    | _ -> ();;
 *)
+
+type 'a comp = |Empty
+               |Symbole of string
+               |Node of {etq : 'a noeud list;fg : 'a comp;fd : 'a comp;id : int};;
+
+
+let createNode etq fg fd id = Node {etq=etq;fg=fg;fd=fd;id=id};;
+
+(*TEST
+let x = (createNode [Etq 1;Etq 3] Empty Empty 2);;
+*)
+let addInNode node add = match node with
+  |Node(n) -> createNode (add::n.etq) n.fg n.fd n.id
+  |_ -> Empty;;
+
+(*TEST
+let y = addInNode x (Etq 5);;
+
+match y with
+  |Node(n) -> match n.etq with
+        |h::t -> match h with
+              |Etq(n) -> print_int n
+              |_ -> ()
+        | _ -> ()
+  |_ -> ();;
+*)
+
+(*Hypothese: l'arbre n'est pas vide*)
+let rec compTree  abr cle hash nodes symb = match abr with
+  | Node(n) -> if n.fg = Empty && n.fd = Empty then (*On a une feuille*)
+                  if symb = [] then mergeNodes nodes cle (Etq n.etq) Empty Empty
+                  else mergeNodes nodes cle (Couple {etq=n.etq; liste=symb}) Empty Empty
+              else
+                    if  (Hashtbl.mem nodes cle) = true then
+                      let tmp = Hashtbl.find nodes cle in match tmp with
+                        |Node(n2) -> let ourSymb = generate_symbol in
+                                        let fg = compTree n.fg (filsG hash cle) hash nodes (ourSymb::symb) in
+                                          let fd = compTree n.fd (filsD hash cle) hash fg (ourSymb::n2.fd::[]) in
+                                            mergeNodes fd cle (Couple{etq=n2.etq; liste=(ourSymb::symb)} Empty Empty
+                        |_-> print_string "ERROR"
+                    else
+                        let fg= compTree n.fg (filsG hash cle) nodes symb in
+                          let fd= compTree n.fd (filsD hash cle) fg symb in
+                            mergeNodes fd cle (Etq cle)(*fils gauche*) (*fils droit*)
+
+
+let compresser abr = let h = (getHash abr) and cle = (getHauteur abr) and symb = [] in
+  let nodes = Hashtbl.create cle in match abr with
+  | Empty -> print_string "L'arbre est vide"
+  | Node(n) -> compTree abr cle h nodes symb ;; (*PAS FINI*)
+
+(*node est soit un Etq of int ou un Couple
+Cette fonction renvoie une hashtable avec la mise a jour des noeuds
+Mais il faudrait qu'elle renvoie un couple symnole, hashtable*)
+let mergeNodes h cle node fg fd =
+  if (Hashtbl.mem h cle) = false then
+    let newN = createNote [node] fg fd cle in Hashtbl.add h newN
+  else
+    let node2 = Hashtabl.find h cle in  let newN = addInNode node2 node in Hashtbl.add h newN;;
+
+(*
+let rec compTree abr cle hash n symb =
+  if (Hashtbl.find n cle)=Empty then
+    let tmp = match abr with
+      |Node(n) -> match n.fg with
+              |Empty(g) -> match n.fd with
+                    |Empty(d) -> Hashtbl.add n cle (createNode (Etq n.etq) Empty Empty cle ); (Etq cle, n)
+                    |Node(d) -> compTree
+              |Node(g) -> (*compresser sur abr fg*)
+      |Empty -> Empty
+
+  else *)
