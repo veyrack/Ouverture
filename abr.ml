@@ -213,23 +213,23 @@ let mergeNodes h cle node fg fd symb=
 let rec compTree  abr cle hash nodes lSymb = match abr with
   | Node(n) -> if n.fg = Empty && n.fd = Empty then (*On a une feuille*)
                   if lSymb = [] then
-                    mergeNodes nodes cle (Etq n.etq) Empty Empty ""
+                    let newN = mergeNodes nodes cle (Etq n.etq) Empty Empty "" in snd newN
                   else
-                    mergeNodes nodes cle (Couple {etq=n.etq; liste=lSymb}) Empty Empty (List.hd lSymb)
+                    let newN = mergeNodes nodes cle (Couple {etq=n.etq; liste=lSymb}) Empty Empty (List.hd lSymb) in snd newN
                else (*on a un noeud*)
                   let tmp = Hashtbl.find nodes cle in match tmp with
-                        |NodeC(n2) ->  let ourSymb = generate_symbol in
+                        |NodeC(n2) ->  let ourSymb = generate_symbol() in
                                         let fg = compTree n.fg (filsG hash cle) hash nodes (if (Hashtbl.mem nodes (filsG hash cle))
                                                                                               then ourSymb::lSymb
                                                                                               else lSymb) in (*le fg existe*)
                                           let fd = compTree n.fd (filsD hash cle) hash (snd fg) (if (Hashtbl.mem nodes (filsD hash cle))
-                                                                                              then(ourSymb::n2.fd::[])
-                                                                                              else lSymb) in
-                                            mergeNodes (snd fd) cle (if Hashtbl.mem nodes cle
+                                                                                              then (ourSymb::n2.fd::[])
+                                                                                              else lSymb ) in
+                                            let newN = mergeNodes (snd fd) cle (if Hashtbl.mem nodes cle
                                                                 then Couple{etq=n2.etq; liste=(ourSymb::lSymb)}
                                                                 else (Etq cle)) (fst fg) (fst fd) (if Hashtbl.mem nodes cle
                                                                                                     then ourSymb
-                                                                                                    else string_of_int cle)
+                                                                                                    else string_of_int cle) in snd newN
 
 
                         |_-> print_string "ERROR"
