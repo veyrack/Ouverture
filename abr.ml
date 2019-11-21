@@ -7,22 +7,19 @@ let rec print_list = function
 | e::l -> print_int e ; print_string " " ; print_list l;;
 
 (*Rempli la liste p avec les elements de la liste l tires aleatoirement*)
-let rec extraction_alea l p = let size = List.length l in
-  if size = 0
-    then p
-  else
-    let r = (int_of_float (Unix.time())) mod size in
-      let tmp = List.nth l r in
-        extraction_alea  (remove tmp l) (tmp :: p);;
-
 let extraction_alea l p = let size = List.length l in
     let r = (int_of_float (Unix.time())) mod size in
       let tmp = List.nth l r in
         ((remove tmp l) , (tmp :: p));;
+
 (*TEST
-let x = [1;5;6;2;3] in
-  print_list (extraction_alea x []);
+let x = [1;2;3;4;5] in
+  let tmp= extraction_alea x [] in
+    print_list (fst tmp);
+    print_string "and ";
+    print_list (snd tmp);;
 *)
+
 
 (*Genere une liste triee d'entier de n a m*)
 let rec interval n m = if n = m
@@ -33,11 +30,17 @@ let rec interval n m = if n = m
 utilise extraction_alea avec cette liste et une liste vide*)
 let gen_permutation n = let l =interval 1 n in
   let p = [] in
-    extraction_alea l p;;
+    let rec tmp ll pp = if List.length ll = 0
+      then pp
+      else
+          let ext=(extraction_alea ll pp) in
+            tmp (fst ext) (snd ext) in
+              tmp l p;;
 
 (*TEST
-print_list (gen_permutation 4);;
+print_list (gen_permutation 5);;
 *)
+
 
 (*Definition du type 'a abr*)
 type 'a abr = |Empty
@@ -206,7 +209,7 @@ match y with
 - cle est le numero de la structure
 - node est soit une Etq of int ou un Couple (etq et symbole)
 - fg/fd fils gauche/droit
-Cette fonction renvoie renvoie un couple: boolean (symbole), hashtable*)
+Cette fonction renvoie renvoie un couple:(symbole), hashtable*)
 let mergeNodes h cle node fg fd symb=
   if (Hashtbl.mem h cle) then
     let node2 = Hashtbl.find h cle in let newN = (addInNode node2 node) in (Hashtbl.add h cle newN) ;(symb,h)
@@ -214,12 +217,12 @@ let mergeNodes h cle node fg fd symb=
     let newN = (createNode [node] fg fd cle) in (Hashtbl.add h cle newN);(string_of_int cle ,h);;
 
 (*Hypothese: l'arbre n'est pas vide*)
-let rec compTree  abr cle hash nodes lSymb = match abr with
+let rec compTree abr cle hash nodes lSymb = match abr with
   | Node(n) -> if n.fg = Empty && n.fd = Empty then (*On a une feuille*)
                   if lSymb = [] then
-                    let newN = mergeNodes nodes cle (Etq n.etq) Empty Empty "" in snd newN
+                    mergeNodes nodes cle (Etq n.etq) Empty Empty ""
                   else
-                    let newN = mergeNodes nodes cle (Couple {etq=n.etq; liste=lSymb}) Empty Empty (List.hd lSymb) in snd newN
+                    mergeNodes nodes cle (Couple {etq=n.etq; liste=lSymb}) Empty Empty (List.hd lSymb)
                else (*on a un noeud*)
                   let tmp = Hashtbl.find nodes cle in match tmp with
                         |NodeC(n2) ->  let ourSymb = generate_symbol() in
@@ -227,27 +230,34 @@ let rec compTree  abr cle hash nodes lSymb = match abr with
                                                                                               then ourSymb::lSymb
                                                                                               else lSymb) in (*le fg existe*)
                                           let fd = compTree n.fd (filsD hash cle) hash (snd fg) (if (Hashtbl.mem nodes (filsD hash cle))
-                                                                                              then (ourSymb::n2.fd::[])
+                                                                                              then (ourSymb::(match n2.fd with
+                                                                                                              | Symbole(n) -> n
+                                                                                                              | _ -> "ERROR")::[])
                                                                                               else lSymb ) in
-                                            let newN = mergeNodes (snd fd) cle (if Hashtbl.mem nodes cle
-                                                                then Couple{etq=n2.etq; liste=(ourSymb::lSymb)}
-                                                                else (Etq cle)) (fst fg) (fst fd) (if Hashtbl.mem nodes cle
-                                                                                                    then ourSymb
-                                                                                                    else string_of_int cle) in snd newN
+                                                                                                mergeNodes (snd fd) cle (if Hashtbl.mem nodes cle
+                                                                            then Couple{etq=n.etq; liste=(ourSymb::lSymb)}
+                                                                            else (Etq cle)) (Symbole (fst fg)) (Symbole (fst fd)) (if Hashtbl.mem nodes cle
+                                                                                                                then ourSymb
+                                                                                                                else string_of_int cle)
 
-
-                        |_-> print_string "ERROR"
+                        |_-> print_string "ERROR";("Err",nodes)
                 (*  else (*le noeud n'existe pas*)
                     let fg= compTree n.fg (filsG hash cle) nodes symb in
                       let fd= compTree n.fd (filsD hash cle) fg symb in
                         mergeNodes fd cle (Etq cle)(*fils gauche*) (*fils droit*)*)
-  | _ -> print_string "ERROR";;
+  | _ -> print_string "ERROR";("Err",nodes);;
+
+(*TEST*)
+let x = construc [2;1;3] in
+  let y = getHash x in
+    compTree x 1 y (Hashtbl.create 1) [];;
 
 
+(*
 let compresser abr = let h = (getHash abr) and cle = (getHauteur abr) and symb = [] in
   let nodes = Hashtbl.create cle in match abr with
   | Empty -> print_string "L'arbre est vide"
-  | NodeC(n) -> compTree abr cle h nodes symb ;; (*PAS FINI*)
+  | NodeC(n) -> compTree abr cle h nodes symb ;; (*PAS FINI*)*)
 
 
 
