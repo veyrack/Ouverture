@@ -15,6 +15,10 @@ let rec extraction_alea l p = let size = List.length l in
       let tmp = List.nth l r in
         extraction_alea  (remove tmp l) (tmp :: p);;
 
+let extraction_alea l p = let size = List.length l in
+    let r = (int_of_float (Unix.time())) mod size in
+      let tmp = List.nth l r in
+        ((remove tmp l) , (tmp :: p));;
 (*TEST
 let x = [1;5;6;2;3] in
   print_list (extraction_alea x []);
