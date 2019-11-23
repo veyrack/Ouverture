@@ -146,6 +146,20 @@ let getHash abr =
         (*Printf.printf "%s \n" pa;*)
         parcours h pa;;
 
+(*TYPE du noeud d'un arbre compressé*)
+type 'a noeud = |Etq of int
+                |Couple of {etq : int; liste : string list};;
+
+(*TYPE de l'arbre compressé*)
+type 'a comp = |Empty
+               |Symbole of string
+               |NodeC of {etq : 'a noeud list;fg : 'a comp;fd : 'a comp;id : int};;
+(*TEST
+let y = Couple {etq = 1;liste=["1";"2";"3"]} in
+match y with
+    |Couple(n) -> print_string (List.hd n.liste)
+    | _ -> ();;
+*)
 
 (*TEST
 let x = getHash (construc [4;2;3;8;1;9;6;7;5]) in
@@ -166,20 +180,6 @@ let reset_s, generate_symbol = let c = ref 0 in
 let test = generate_symbol() in print_string test; let test2 = generate_symbol() in print_string test2;;
 *)
 
-(*TYPE du noeud d'un arbre compressé*)
-type 'a noeud = |Etq of int
-                |Couple of {etq : int; liste : string list};;
-(*TEST
-let y = Couple {etq = 1;liste=["1";"2";"3"]} in
-match y with
-    |Couple(n) -> print_string (List.hd n.liste)
-    | _ -> ();;
-*)
-
-(*TYPE de l'arbre compressé*)
-type 'a comp = |Empty
-               |Symbole of string
-               |NodeC of {etq : 'a noeud list;fg : 'a comp;fd : 'a comp;id : int};;
 
 (*Creer un noeud avec les parametres donnés*)
 let createNode etq fg fd id = NodeC {etq=etq;fg=fg;fd=fd;id=id};;
@@ -268,22 +268,24 @@ let print_noeud n = match n with
 
 
 
- let rec print_compTree abr = match abr with
+let rec print_compTree abr = match abr with
  | Empty -> print_string "Empty"
- |NodeC(n) -> printList print_noeud n.etq;
+ | NodeC(n) -> printList print_noeud n.etq;
     print_string " fg:";
     print_compTree n.fg;
     print_string " fd:";
     print_compTree n.fd;
+    print_string " id: ";
+    print_int n.id;
     print_string " }  "
  | Symbole(s) -> print_string "SYMB: "; print_string s ;;
 
  (*TEST*)
- let x = construc [4;2;1;3;6;5;7] in
+(*let x = construc [4;2;3;8;1;9;6;7;5] in
   let y = getHash x in
-     let z = compTree x 3 y (Hashtbl.create 3) [] in
-      let nodes = snd z in print_compTree (Hashtbl.find nodes 3); print_string "\n"; print_compTree (Hashtbl.find nodes 2); print_string "\n"; print_compTree(Hashtbl.find nodes 1);;
-
+    let z = compTree x 4 y (Hashtbl.create 4) [] in
+      let nodes = snd z in print_compTree (Hashtbl.find nodes 4); print_string "\n";print_compTree (Hashtbl.find nodes 3); print_string "\n"; print_compTree (Hashtbl.find nodes 2); print_string "\n"; print_compTree(Hashtbl.find nodes 1);;
+*)
 (*
 let compresser abr = let h = (getHash abr) and cle = (getHauteur abr) and symb = [] in
   let nodes = Hashtbl.create cle in match abr with
@@ -305,3 +307,26 @@ let rec compTree abr cle hash n symb =
       |Empty -> Empty
 
   else *)
+
+let rec checkList l e = match l with
+| h::t -> match h with
+  | Etq(n) -> if n=e then h else checkList t e
+  | Couple(n) -> if e=n.etq then h else checkList t e
+  | _ -> Etq 0
+| _ -> Etq 0;;
+
+let rec search compT e = match compT with
+  | Empty -> Empty
+  | NodeC(n) -> let tmp=(checkList n.etq e) in
+                            if tmp = Etq 0
+                              then let tmp2 =(search n.fg e) in
+                                if tmp2 = Empty
+                                  then search n.fd e
+                                  else tmp2
+                              else Empty
+  | _ -> Empty;;
+
+let x = construc [4;2;3;8;1;9;6;7;5] in
+  let y = getHash x in
+    let z = compTree x 4 y (Hashtbl.create 4) [] in
+      search z 1;;
