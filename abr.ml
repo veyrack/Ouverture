@@ -226,19 +226,17 @@ let rec compTree abr cle hash nodes lSymb = match abr with
                else (*on a un noeud*)
                   if Hashtbl.mem nodes cle then
                     let tmp = Hashtbl.find nodes cle in match tmp with
-                          |NodeC(n2) ->  let ourSymb = generate_symbol() in
-                                          let fg = compTree n.fg (filsG hash cle) hash nodes (if (Hashtbl.mem nodes (filsG hash cle))
-                                                                                                then ourSymb::lSymb
-                                                                                                else lSymb) in (*le fg existe*)
+                          |NodeC(n2) ->
+                                          let fg = compTree n.fg (filsG hash cle) hash nodes lSymb in (*le fg existe*)
                                             let fd = compTree n.fd (filsD hash cle) hash (snd fg) (if (Hashtbl.mem nodes (filsD hash cle))
-                                                                                                then (ourSymb::(match n2.fd with
+                                                                                                then ((match n2.fd with
                                                                                                                 | Symbole(n) -> n
-                                                                                                                | _ -> "ERROR")::[])
+                                                                                                                | _ -> "ERROR")::lSymb)
                                                                                                 else lSymb ) in
                                                                                                   mergeNodes (snd fd) cle (if Hashtbl.mem nodes cle
-                                                                              then Couple{etq=n.etq; liste=(ourSymb::lSymb)}
+                                                                              then Couple{etq=n.etq; liste=(lSymb)}
                                                                               else (Etq n.etq)) (Symbole (fst fg)) (Symbole (fst fd)) (if Hashtbl.mem nodes cle
-                                                                                                                  then ourSymb
+                                                                                                                  then List.hd lSymb
                                                                                                                   else string_of_int cle)
 
                           |_-> print_string "ERROR";("Err",nodes)
@@ -248,6 +246,9 @@ let rec compTree abr cle hash nodes lSymb = match abr with
                       let fd= compTree n.fd (filsD hash cle) hash (snd fg) (if Hashtbl.mem (snd fg) (filsG hash cle) then generate_symbol()::[] else lSymb ) in
                         mergeNodes (snd fd) cle (Etq n.etq) (Symbole (fst fg)) (Symbole (fst fd)) "" (*(if String.equal (fst fg) (fst fd) then (Symbol (fst fd)) else Symbol *)
   | _ -> print_string "ERROR";("Err",nodes);;
+
+
+
 
 
 
