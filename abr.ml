@@ -422,10 +422,10 @@ let rec searchMap compT e = match compT with
   | SymboleM(n,c) -> searchMap !c e;;
 
 
+
 (*TEST*)
-(*
+
 let a = construc [4;2;3;8;1;9;6;7;5] in
   let b = getHash a in
     let c = compTreeMap a 4 b (Hashtbl.create 4) [] in
       Printf.printf "%B\n" (searchMap !(Hashtbl.find (snd c) 4) 10);;
-*)
