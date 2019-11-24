@@ -148,13 +148,13 @@ let getHash abr =
 
 (*TYPE du noeud d'un arbre compressé*)
 type 'a noeud = |Etq of int
-                |Couple of {etq : int; liste : string list};;
+             |Couple of {etq : int; liste : string list};;
 
 (*TYPE de l'arbre compressé*)
 type 'a comp = |Empty
-               |Symbole of string
-               |NodeC of {mutable etq : 'a noeud list;fg : 'a comp ;fd : 'a comp ;id : int}
-               |Pointeur of 'a comp ref;;
+            |Symbole of string
+            |NodeC of {etq : 'a noeud list;fg : 'a comp ref ;fd : 'a comp ref ;id : int}
+
 
 (*TEST
 let y = Couple {etq = 1;liste=["1";"2";"3"]} in
@@ -206,55 +206,57 @@ match y with
   |_ -> ();;
 *)
 
+(*let h_nodes : (int,'a comp ref) Hashtbl.t = (Hashtbl.create 4);;*)
+
+
 (*
 - h est la hashtable contenant les noeuds
 - cle est le numero de la structure
 - node est soit une Etq of int ou un Couple (etq et symbole)
 - fg/fd fils gauche/droit
 Cette fonction renvoie renvoie un couple:(symbole), hashtable*)
-let mergeNodes h cle node fg fd symb =
-  if (Hashtbl.mem h cle) then
-    let node2 = Hashtbl.find h cle in let newN = (addInNode node2 node) in (Hashtbl.replace h cle newN) ;
-      (symb,h)
+let mergeNodes h_nodes cle node fg fd symb =
+  if (Hashtbl.mem h_nodes cle) then
+    let node2 = Hashtbl.find h_nodes cle in let newN = (addInNode !node2 node) in node2:= newN ;
+      (symb,h_nodes)
   else
-    let newN = (createNode [node] fg fd cle) in (Hashtbl.add h cle newN);
-      (string_of_int cle ,h);;
+    let newN = (createNode [node] fg fd cle) in (Hashtbl.add h_nodes cle (ref newN));
+      (string_of_int cle,h_nodes);;
 
-let creerFils s nodes = if (Str.string_match (Str.regexp "^SYMB[0-9]+") s 0)
-    then Symbole s
-    else Pointeur (ref (Hashtbl.find nodes (int_of_string s)));;
+let creerFils h_nodes s = if (Str.string_match (Str.regexp "^SYMB[0-9]+") s 0)
+    then ref (Symbole s)
+    else Hashtbl.find h_nodes (int_of_string s);;
 
 (*Hypothese: l'arbre n'est pas vide*)
-let rec compTree abr cle hash nodes lSymb = match abr with
+let rec compTree abr cle hash h_nodes lSymb = match abr with
   | Node(n) -> if n.fg = Empty && n.fd = Empty then (*On a une feuille*)
                   if lSymb = [] then
-                    mergeNodes nodes cle (Etq n.etq) Empty Empty (string_of_int cle)
+                    mergeNodes h_nodes cle (Etq n.etq) (ref Empty) (ref Empty) (string_of_int cle)
                   else
-                    mergeNodes nodes cle (Couple {etq=n.etq; liste=lSymb}) Empty Empty (List.hd lSymb)
+                    mergeNodes h_nodes cle (Couple {etq=n.etq; liste=lSymb}) (ref Empty) (ref Empty) (List.hd lSymb)
                else (*on a un noeud*)
-                  if Hashtbl.mem nodes cle then
-                    let tmp = Hashtbl.find nodes cle in match tmp with
+                  if Hashtbl.mem h_nodes cle then
+                    let tmp = Hashtbl.find h_nodes cle in match !tmp with
                           |NodeC(n2) ->
-                                          let fg = compTree n.fg (filsG hash cle) hash nodes lSymb in (*le fg existe*)
-                                            let fd = compTree n.fd (filsD hash cle) hash (snd fg) (if (Hashtbl.mem nodes (filsD hash cle))
-                                                                                                then ((match n2.fd with
+                                          let fg = compTree n.fg (filsG hash cle) hash h_nodes lSymb in (*le fg existe*)
+                                            let fd = compTree n.fd (filsD hash cle) hash h_nodes (if (Hashtbl.mem h_nodes (filsD hash cle))
+                                                                                                then ((match !(n2.fd) with
                                                                                                                 | Symbole(n) -> n::lSymb
-                                                                                                                | Pointeur(n) -> lSymb
                                                                                                                 | _ -> []))
                                                                                                 else lSymb ) in
-                                                                                                  mergeNodes (snd fd) cle (if Hashtbl.mem nodes cle
+                                                                                                  mergeNodes h_nodes cle (if Hashtbl.mem h_nodes cle
                                                                               then Couple{etq=n.etq; liste=(lSymb)}
-                                                                              else (Etq n.etq)) (creerFils (fst fg) nodes) (creerFils (fst fd) nodes) (if Hashtbl.mem nodes cle
+                                                                              else (Etq n.etq)) (creerFils h_nodes (fst fg)) (creerFils h_nodes (fst fd)) (if Hashtbl.mem h_nodes cle
                                                                                                                   then List.hd lSymb
                                                                                                                   else string_of_int cle)
 
-                          |_-> print_string "ERROR";("Err",nodes)
+                          |_-> print_string "ERROR";("Err",h_nodes)
 
                   else (*le noeud n'existe pas*)
-                    let fg= compTree n.fg (filsG hash cle) hash nodes lSymb in
-                      let fd= compTree n.fd (filsD hash cle) hash (snd fg) (if Hashtbl.mem (snd fg) (filsG hash cle) then generate_symbol()::[] else lSymb ) in
-                        mergeNodes (snd fd) cle (Etq n.etq) (creerFils (fst fg) nodes) (creerFils (fst fd) nodes) "" (*(if String.equal (fst fg) (fst fd) then (Symbol (fst fd)) else Symbol *)
-  | _ -> print_string "ERROR";("Err",nodes);;
+                    let fg= compTree n.fg (filsG hash cle) hash h_nodes lSymb in
+                      let fd= compTree n.fd (filsD hash cle) hash h_nodes (if Hashtbl.mem h_nodes (filsG hash cle) then generate_symbol()::[] else lSymb ) in
+                        mergeNodes h_nodes cle (Etq n.etq) (creerFils h_nodes (fst fg)) (creerFils h_nodes (fst fd)) "" (*(if String.equal (fst fg) (fst fd) then (Symbol (fst fd)) else Symbol *)
+  | _ -> print_string "ERROR";("Err",h_nodes);;
 
 
 
@@ -271,36 +273,34 @@ let printList f lst =
   let rec print_elements = function
     | [] -> ()
     | h::t -> f h; print_string ";"; print_elements t
-  in
-  print_string "{";
-  print_elements lst;;
+  in print_elements lst;;
 
 
 let print_noeud n = match n with
   |Etq(e) -> print_string "ETQ:"; print_int e
-  |Couple(c) -> print_string "{ COUPLE:"; print_int c.etq; print_string "  Symboles:"; printList print_string c.liste; print_string "} } \n"
+  |Couple(c) -> print_string "\t{ COUPLE:"; print_int c.etq; print_string "  Symboles:"; printList print_string c.liste; print_string "} \n"
   |_ -> print_string "ERROR NOEUD";;
 
 
 
 let rec print_compTree abr = match abr with
  | Empty -> print_string "Empty"
- | NodeC(n) -> printList print_noeud n.etq;
+ | NodeC(n) -> print_string "{";
+    printList print_noeud n.etq;
     print_string " fg:";
-    print_compTree n.fg;
+    print_compTree !(n.fg);
     print_string " fd:";
-    print_compTree n.fd;
+    print_compTree !(n.fd);
     print_string " id: ";
     print_int n.id;
     print_string " }  "
- | Symbole(s) -> print_string "SYMB: "; print_string s
- | Pointeur(p) -> print_string "POINTEUR: ";print_compTree !p ;;
+ | Symbole(s) -> print_string "SYMB: "; print_string s;;
 
  (*TEST*)
 let x = construc [4;2;3;8;1;9;6;7;5] in
   let y = getHash x in
     let z = compTree x 4 y (Hashtbl.create 4) [] in
-      let nodes = snd z in print_compTree (Hashtbl.find nodes 4);;
+      let nodes = snd z in print_compTree !(Hashtbl.find nodes 4);;
 
 
 (*
@@ -324,7 +324,7 @@ let rec compTree abr cle hash n symb =
       |Empty -> Empty
 
   else *)
-
+(*
 let rec checkList l e = match l with
 | h::t -> match h with
   | Etq(n) -> if n=e then h else checkList t e
@@ -341,7 +341,7 @@ let rec search compT e = match compT with
                                   then search n.fd e
                                   else tmp2
                               else Empty
-  | _ -> Empty;;
+  | _ -> Empty;;*)
 (*
 let x = construc [4;2;3;8;1;9;6;7;5] in
   let y = getHash x in
