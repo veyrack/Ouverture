@@ -155,6 +155,10 @@ type comp = |Empty
             |Symbole of string * comp ref
             |NodeC of {etq : noeud list;fg : comp ref ;fd : comp ref ;id : int}
 
+(*TYPE de l'arbre compressé map*)
+type comp_map = |EmptyM
+                |SymboleM of string * comp_map ref
+                |NodeM of {etq : (int,string list) Hashtbl.t ;fg : comp_map ref ;fd : comp_map ref ;id : int}
 
 (*TEST
 let y = Couple {etq = 1;liste=["1";"2";"3"]} in
@@ -206,7 +210,6 @@ match y with
   |_ -> ();;
 *)
 
-(*let h_nodes : (int,'a comp ref) Hashtbl.t = (Hashtbl.create 4);;*)
 
 
 (*
@@ -258,14 +261,9 @@ let rec compTree abr cle hash h_nodes lSymb = match abr with
                         mergeNodes h_nodes cle (Etq n.etq) (creerFils h_nodes (fst fg) (filsG hash cle)) (creerFils h_nodes (fst fd) (filsD hash cle)) "" (*(if String.equal (fst fg) (fst fd) then (Symbol (fst fd)) else Symbol *)
   | _ -> print_string "ERROR";("Err",h_nodes);;
 
-
-
-(*TEST*)
-(*let x = (Hashtbl.create 3) in
-  Hashtbl.add x 1 (Symbole "SYMB1");
-  match (creerFils "SYMB2" x) with
-  | Symbole(n) -> print_string n
-  | Pointeur(n) -> print_compTree (!n) ;;*)
+(*Fonction (principale) qui compresse l'arbre*)
+let compresser abr = let h = (getHash abr) and cle = (getHauteur abr) and symb = [] in
+  let nodes = Hashtbl.create cle in let c = compTree abr cle h nodes symb in !(Hashtbl.find (snd c) cle) ;;
 
 
 (* TEST PRINT*)
@@ -281,7 +279,6 @@ let printList f lst =
 let print_noeud n = match n with
   |Etq(e) -> print_string "ETQ:"; print_int e
   |Couple(c) -> print_string "{ COUPLE:"; print_int c.etq; print_string "  Symboles:"; printList print_string c.liste; print_string "} } \n"
-  |_ -> print_string "ERROR NOEUD";;
 
 
 
@@ -303,37 +300,132 @@ let x = construc [4;2;3;8;1;9;6;7;5] in
   let y = getHash x in
     let z = compTree x 4 y (Hashtbl.create 4) [] in
       let nodes = snd z in print_compTree !(Hashtbl.find nodes 4);;
+
+let x = construc [4;2;3;8;1;9;6;7;5] in
+  let compress = compresser x in print_compTree compress;;
 *)
-
-
-(*
-let compresser abr = let h = (getHash abr) and cle = (getHauteur abr) and symb = [] in
-  let nodes = Hashtbl.create cle in match abr with
-  | Empty -> print_string "L'arbre est vide"
-  | NodeC(n) -> compTree abr cle h nodes symb ;; (*PAS FINI*)*)
-
-
 let rec checkList l e = match l with
+| [] -> 2
 | h::t -> match h with
   | Etq(n) -> if n=e then 0 else if n<e then 1 else -1
   | Couple(n) -> if e=n.etq then 0 else checkList t e
-  | _ -> 2
-| _ -> 2;;
 
+
+(*Recherche a partir du noeud compT si e est contenue dans 'arbre'*)
 let rec search compT e = match compT with
   | Empty -> false
   | NodeC(n) -> let tmp = checkList n.etq e in
       if tmp = 0
         then true
-        else if tmp = 2
-          then false
-          else if tmp = 1
-            then search !(n.fd) e
-            else search !(n.fg) e
-  | Symbole(n,c) -> search !c e
-  | _ -> false;;
+        else if tmp = 1
+          then search !(n.fd) e
+          else search !(n.fg) e
+  | Symbole(n,c) -> search !c e;;
 
+
+
+(*TEST*)(*
 let a = construc [4;2;3;8;1;9;6;7;5] in
   let b = getHash a in
     let c = compTree a 4 b (Hashtbl.create 4) [] in
       Printf.printf "%B\n" (search !(Hashtbl.find (snd c) 4) 9);;
+*)
+
+let addInNodeMap map etq lsymb = match map with
+  | NodeM(n) -> Hashtbl.add n.etq etq lsymb; NodeM {etq=n.etq;fg=n.fg;fd=n.fd;id=n.id}
+  | _ -> EmptyM;;
+
+let mergeNodesMap h_nodes cle fg fd lsymb etq =
+  if (Hashtbl.mem h_nodes cle) then
+    let node2 = Hashtbl.find h_nodes cle in let newN = (addInNodeMap !node2 etq lsymb ) in node2:= newN ;
+      (List.hd lsymb,h_nodes)
+  else
+    let tmp = Hashtbl.create cle in Hashtbl.add tmp etq [];
+      let newN = NodeM {etq=tmp;fg=fg;fd=fd;id=cle} in (Hashtbl.add h_nodes cle (ref newN));
+        (string_of_int cle,h_nodes);;
+
+let creerFilsMap h_nodes s id= if (Str.string_match (Str.regexp "^SYMB[0-9]+") s 0)
+    then ref (SymboleM (s,Hashtbl.find h_nodes id))
+    else Hashtbl.find h_nodes (int_of_string s);;
+
+
+let rec compTreeMap abr cle hash h_nodes lSymb = match abr with
+  | Node(n) -> if n.fg = Empty && n.fd = Empty then (*On a une feuille*)
+                  if lSymb = [] then
+                    mergeNodesMap h_nodes cle (ref EmptyM) (ref EmptyM) ((string_of_int cle)::[]) n.etq
+                  else
+                    mergeNodesMap h_nodes cle (ref EmptyM) (ref EmptyM) lSymb n.etq
+               else (*on a un noeud*)
+                  if Hashtbl.mem h_nodes cle then
+                    let tmp = Hashtbl.find h_nodes cle in match !tmp with
+                          |NodeM(n2) ->
+                                          let fg = compTreeMap n.fg (filsG hash cle) hash h_nodes lSymb in (*le fg existe*)
+                                            let fd = compTreeMap n.fd (filsD hash cle) hash h_nodes (if (Hashtbl.mem h_nodes (filsD hash cle))
+                                                                                                then ((match !(n2.fd) with
+                                                                                                                | SymboleM(s,h) -> s::lSymb
+                                                                                                                | _ -> []))
+                                                                                                else lSymb ) in
+                                                                                                  mergeNodesMap h_nodes cle (creerFilsMap h_nodes (fst fg) (filsG hash cle))
+                                                                                                            (creerFilsMap h_nodes (fst fd) (filsD hash cle)) (if Hashtbl.mem h_nodes cle
+                                                                                                                    then lSymb
+                                                                                                                  else (string_of_int cle)::[]) n.etq
+
+                          |_-> print_string "ERROR";("Err",h_nodes)
+
+                  else (*le noeud n'existe pas*)
+                    let fg= compTreeMap n.fg (filsG hash cle) hash h_nodes lSymb in
+                      let fd= compTreeMap n.fd (filsD hash cle) hash h_nodes (if Hashtbl.mem h_nodes (filsG hash cle) then generate_symbol()::[] else lSymb ) in
+                        mergeNodesMap h_nodes cle (creerFilsMap h_nodes (fst fg) (filsG hash cle)) (creerFilsMap h_nodes (fst fd) (filsD hash cle)) [] n.etq  (*(if String.equal (fst fg) (fst fd) then (Symbol (fst fd)) else Symbol *)
+  | _ -> print_string "ERROR";("Err",h_nodes);;
+
+
+let compresserMap abr = let h = (getHash abr) and cle = (getHauteur abr) and symb = [] in
+  let nodes = Hashtbl.create cle in let c = compTreeMap abr cle h nodes symb in !(Hashtbl.find (snd c) cle) ;;
+
+
+let rec print_hash h = let f x y = print_int x;printList print_string y in
+  begin
+    print_string "ETQ: ";
+    Hashtbl.iter f h;
+  end;;
+
+let rec print_compTreeMap abr = match abr with
+ | EmptyM -> print_string "Empty"
+ | NodeM(n) -> print_hash n.etq;
+    print_string " fg:";
+    print_compTreeMap !(n.fg);
+    print_string " fd:";
+    print_compTreeMap !(n.fd);
+    print_string " id: ";
+    print_int n.id;
+    print_string " }  "
+ | SymboleM(s,h) -> print_string "SYMB: "; print_string s(*; print_compTree !h*);;
+
+(*et x = construc [4;2;3;8;1;9;6;7;5] in
+  let y = getHash x in
+    let z = compTreeMap x 4 y (Hashtbl.create 4) [] in
+      let nodes = snd z in print_compTreeMap !(Hashtbl.find nodes 4);;*)
+
+(*TEST*)
+(*
+let x = construc [4;2;3;8;1;9;6;7;5] in
+  let compress = compresserMap x in print_compTreeMap compress;;
+*)
+
+let rec searchMap compT e = match compT with
+  | EmptyM -> false
+  | NodeM(n) -> if (Hashtbl.mem n.etq e) then true
+    else
+      if not (searchMap !(n.fg) e)
+        then searchMap !(n.fd) e
+        else true
+  | SymboleM(n,c) -> searchMap !c e;;
+
+
+(*TEST*)
+(*
+let a = construc [4;2;3;8;1;9;6;7;5] in
+  let b = getHash a in
+    let c = compTreeMap a 4 b (Hashtbl.create 4) [] in
+      Printf.printf "%B\n" (searchMap !(Hashtbl.find (snd c) 4) 10);;
+*)
