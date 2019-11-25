@@ -1,4 +1,4 @@
-(*Remove l'element e de la liste l*)
+ABR-compress-map(*Remove l'element e de la liste l*)
 let remove e l = List.filter (fun x -> x != e) l;;
 
 (*Print la liste pour des entiers*)
@@ -200,7 +200,7 @@ let rec compTree  abr h_nodes lSymb = let mot = parenth abr in
         mergeNodes h_nodes mot (Etq n.etq) (creerFils h_nodes (fst fg) (parenth n.fg)) (creerFils h_nodes (fst fd) (parenth n.fd)) "" );;
 
 (*Fonction (principale) qui compresse l'arbre*)
-let compresser abr = let nodes = Hashtbl.create (getHauteur abr) in let c = compTree abr nodes [] in !(Hashtbl.find (snd c) (parenth abr)) ;;
+let ABR-compress-listes abr = let nodes = Hashtbl.create (getHauteur abr) in let c = compTree abr nodes [] in !(Hashtbl.find (snd c) (parenth abr)) ;;
 
 
 (* Print une liste en appliquant f a la liste*)
@@ -237,9 +237,9 @@ let x = construc [1;2;3;4] in
       let nodes = snd z in print_compTree !(Hashtbl.find nodes (parenth x));;
 *)
 
-(*TEST de la fonction compresser
+(*TEST de la fonction ABR-compress-listes
 let x = construc [4;2;3;8;1;9;6;7;5] in
-  let compress = compresser x in print_compTree compress;;
+  let compress = ABR-compress-listes x in print_compTree compress;;
 *)
 
 (*Check si e est dans la liste l
@@ -323,7 +323,7 @@ let rec compTreeMap  abr h_nodes lSymb = let mot = parenth abr in
         let fd = compTreeMap n.fd h_nodes (if Hashtbl.mem h_nodes (parenth n.fd) then generate_symbol()::[] else lSymb ) in
         mergeNodesMap h_nodes mot (creerFilsMap h_nodes (fst fg) (parenth n.fg)) (creerFilsMap h_nodes (fst fd) (parenth n.fd)) [] n.etq);;
 
-let compresserMap abr = let nodes = Hashtbl.create (getHauteur abr) in let c = compTreeMap abr nodes [] in !(Hashtbl.find (snd c) (parenth abr)) ;;
+let ABR-compress-map abr = let nodes = Hashtbl.create (getHauteur abr) in let c = compTreeMap abr nodes [] in !(Hashtbl.find (snd c) (parenth abr)) ;;
 
 
 (*TEST de compression map
@@ -333,7 +333,7 @@ let compresserMap abr = let nodes = Hashtbl.create (getHauteur abr) in let c = c
       let nodes = snd z in print_compTreeMap !(Hashtbl.find nodes 4);;*)
 (*
 let x = construc [4;2;3;8;1;9;6;7;5] in
-  let compress = compresserMap x in print_compTreeMap compress;;
+  let compress = ABR-compress-map x in print_compTreeMap compress;;
 *)
 
 
