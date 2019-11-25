@@ -408,12 +408,18 @@ let list = [100;150;500;750;1000;5000;8000;10000;15000;20000;25000;30000;35000;4
   in test_comp list;;*)
 
 
-let search_ct_time_test ct n =
+let searchComp_test abr n =
   let t = Unix.gettimeofday () in
-  let _ = search ct n in
+  let _ = search abr n in
   Unix.gettimeofday () -. t
 
-(*Bound=max n=liste size*)
+
+let searchMap_test abr n =
+  let t = Unix.gettimeofday () in
+  let _ = searchMap abr n in
+  Unix.gettimeofday () -. t
+
+(*Bound=max n=list size*)
 let rec list_of_rand bound n =
   let rec lambda b n p = match b with
     | 0 -> []
@@ -422,24 +428,28 @@ let rec list_of_rand bound n =
       | x::s -> [x] @ lambda (b-1) n s
   in lambda bound n (gen_permutation n);;
 
-
-
-let average_time_test_ct ct n  =
-  let rec lambda ct n = match n with
+(*Tps moyen de recherche pour les arbres compresses*)
+let average_comp abr n  =
+  let rec lambda abr n = match n with
     | [] -> 0.0
-    | x::s -> (search_ct_time_test ct x) +. (lambda ct s)
-  in (lambda ct n)/.(float_of_int (List.length n))
-(*
-let average_time_test_ht ht n =
-  let rec lambda ht n = match n with
-    | [] -> 0.0
-    | x::s -> (searchComp ht x) +. (lambda ht s)
-  in (lambda ht n)/.(float_of_int (List.length n))*)
+    | x::s -> (searchComp_test abr x) +. (lambda abr s)
+  in (lambda abr n)/.(float_of_int (List.length n))
 
-let time_test n = let r = list_of_rand 50 50(*nb valeur a tester*) in
+let average_map abr n =
+  let rec lambda abr n = match n with
+    | [] -> 0.0
+    | x::s -> (searchMap_test abr x) +. (lambda abr s)
+  in (lambda abr n)/.(float_of_int (List.length n))
+
+(*let time_test n = let r = list_of_rand 50 50(*nb valeur a tester*) in
         let mytree = construc (gen_permutation n(*taille de l'arbre*)) in
         let comp = compresser mytree in
-          average_time_test_ct comp r;;
+          average_comp comp r;;*)
+let time_test n = let r = list_of_rand 50 50(*nb valeur a tester*) in
+        let mytree = construc (gen_permutation n(*taille de l'arbre*)) in
+        let comp = compressMap mytree in
+          average_map comp r;;
+
 
 let list = [100;150;500;750;1000;5000;8000;10000;15000;20000;25000;30000;35000;40000;50000] in
   let rec test_comp l = match l with
