@@ -1,4 +1,4 @@
-ABR-compress-map(*Remove l'element e de la liste l*)
+(*Remove l'element e de la liste l*)
 let remove e l = List.filter (fun x -> x != e) l;;
 
 (*Print la liste pour des entiers*)
@@ -195,12 +195,13 @@ let rec compTree  abr h_nodes lSymb = let mot = parenth abr in
                                 mergeNodes h_nodes mot (Couple{etq=n.etq; liste=lSymb}) (ref Empty) (ref Empty) (if lSymb=[] then "" else (List.hd lSymb)) (*On n'a pas besoin de savoir les fg et fd *)
         |_ -> ("Err",h_nodes)
       else (*Noeud n'existe pas*)
-        let fg = compTree n.fg h_nodes (if Hashtbl.mem h_nodes (parenth n.fg) then generate_symbol()::[] else lSymb ) in
-        let fd = compTree n.fd h_nodes (if Hashtbl.mem h_nodes (parenth n.fd) then generate_symbol()::[] else lSymb ) in
-        mergeNodes h_nodes mot (Etq n.etq) (creerFils h_nodes (fst fg) (parenth n.fg)) (creerFils h_nodes (fst fd) (parenth n.fd)) "" );;
+        let pa_fg = (parenth n.fg) and pa_fd = (parenth n.fd) in
+        let fg = compTree n.fg h_nodes (if Hashtbl.mem h_nodes pa_fg then generate_symbol()::[] else lSymb ) in
+        let fd = compTree n.fd h_nodes (if Hashtbl.mem h_nodes pa_fd then generate_symbol()::[] else lSymb ) in
+        mergeNodes h_nodes mot (Etq n.etq) (creerFils h_nodes (fst fg) pa_fg) (creerFils h_nodes (fst fd) pa_fd) "" );;
 
 (*Fonction (principale) qui compresse l'arbre*)
-let ABR-compress-listes abr = let nodes = Hashtbl.create (getHauteur abr) in let c = compTree abr nodes [] in !(Hashtbl.find (snd c) (parenth abr)) ;;
+let compresser abr = let nodes = Hashtbl.create (getHauteur abr) in let c = compTree abr nodes [] in !(Hashtbl.find (snd c) (parenth abr)) ;;
 
 
 (* Print une liste en appliquant f a la liste*)
@@ -237,10 +238,10 @@ let x = construc [1;2;3;4] in
       let nodes = snd z in print_compTree !(Hashtbl.find nodes (parenth x));;
 *)
 
-(*TEST de la fonction ABR-compress-listes
-let x = construc [4;2;3;8;1;9;6;7;5] in
-  let compress = ABR-compress-listes x in print_compTree compress;;
-*)
+(*TEST de la fonction ABR-compress-listes*)
+(*let x = construc (gen_permutation 50000) in
+  compresser x;;*)
+
 
 (*Check si e est dans la liste l
 renvoi 0 si oui,sinon -1 si e < à l'etiquette,1 sinon*)
@@ -251,7 +252,7 @@ let rec checkList l e = match l with
     | Couple(n) -> if e=n.etq then 0 else checkList t e
 
 
-(*Recherche a partir du noeud compT si e est contenue dans 'arbre'*)
+(*Recherche a partir du noeud compT si e est contenue dans l'arbre*)
 let rec search compT e = match compT with
   | Empty -> false
   | NodeC(n) -> let tmp = checkList n.etq e in
@@ -267,9 +268,7 @@ let rec search compT e = match compT with
 (*TEST DE RECHERCHE*)
 (*
 let a = construc [4;2;3;8;1;9;6;7;5] in
-let b = Hashtbl.create 4 in
-let c = compTree a b [] in
-Printf.printf "%B\n" (search !(Hashtbl.find (snd c) (parenth a)) 10);;
+Printf.printf "%B\n" (search (ABR-compress-listes a) 10);;
 *)
 
 
@@ -319,11 +318,12 @@ let rec compTreeMap  abr h_nodes lSymb = let mot = parenth abr in
           mergeNodesMap h_nodes mot (ref EmptyM) (ref EmptyM) lSymb n.etq (*On n'a pas besoin de savoir les fg et fd *)
         |_ -> ("Err",h_nodes)
       else (*Noeud n'existe pas*)
-        let fg = compTreeMap n.fg h_nodes (if Hashtbl.mem h_nodes (parenth n.fg) then generate_symbol()::[] else lSymb ) in
-        let fd = compTreeMap n.fd h_nodes (if Hashtbl.mem h_nodes (parenth n.fd) then generate_symbol()::[] else lSymb ) in
-        mergeNodesMap h_nodes mot (creerFilsMap h_nodes (fst fg) (parenth n.fg)) (creerFilsMap h_nodes (fst fd) (parenth n.fd)) [] n.etq);;
+        let pa_fg = (parenth n.fg) and pa_fd = (parenth n.fd) in
+        let fg = compTreeMap n.fg h_nodes (if Hashtbl.mem h_nodes pa_fg then generate_symbol()::[] else lSymb ) in
+        let fd = compTreeMap n.fd h_nodes (if Hashtbl.mem h_nodes pa_fd then generate_symbol()::[] else lSymb ) in
+        mergeNodesMap h_nodes mot (creerFilsMap h_nodes (fst fg) pa_fg) (creerFilsMap h_nodes (fst fd) pa_fd) [] n.etq);;
 
-let ABR-compress-map abr = let nodes = Hashtbl.create (getHauteur abr) in let c = compTreeMap abr nodes [] in !(Hashtbl.find (snd c) (parenth abr)) ;;
+let compressMap abr = let nodes = Hashtbl.create (getHauteur abr) in let c = compTreeMap abr nodes [] in !(Hashtbl.find (snd c) (parenth abr)) ;;
 
 
 (*TEST de compression map
@@ -333,7 +333,7 @@ let ABR-compress-map abr = let nodes = Hashtbl.create (getHauteur abr) in let c 
       let nodes = snd z in print_compTreeMap !(Hashtbl.find nodes 4);;*)
 (*
 let x = construc [4;2;3;8;1;9;6;7;5] in
-  let compress = ABR-compress-map x in print_compTreeMap compress;;
+  let compress = compressMap x in print_compTreeMap compress;;
 *)
 
 
@@ -381,3 +381,28 @@ let rec searchMap compT e = match compT with
       let c = compTreeMap a b [] in
         Printf.printf "%B\n" (searchMap !(Hashtbl.find (snd c) (parenth a)) 2);;
 *)
+
+let compress_size_test tt= 
+  let s = Gc.allocated_bytes () in
+  let _ = compresser tt in 
+  Gc.allocated_bytes () -. s;;
+
+let compressMap_size_test tt= 
+  let s = Gc.allocated_bytes () in
+  let _ = compressMap tt in 
+  Gc.allocated_bytes () -. s;;
+
+(*let x = compress_size_test (construc (gen_permutation 50000)) in Printf.printf "%f\n" x;;*)
+(*let x = compressMap_size_test (construc (gen_permutation 50000)) in Printf.printf "%f\n" x;;*)
+(*
+let list = [100;150;500;750;1000;5000;8000;10000;15000;20000;25000;30000;35000;40000;50000] in
+  let rec test_comp l = match l with
+  | h::t -> Printf.printf "[%d] : %f\n" h (compress_size_test (construc (gen_permutation h))); test_comp t
+  | _ -> ()
+  in test_comp list;;*)
+(*
+let list = [100;150;500;750;1000;5000;8000;10000;15000;20000;25000;30000;35000;40000;50000] in
+  let rec test_comp l = match l with
+  | h::t -> Printf.printf "[%d] : %f\n" h (compressMap_size_test (construc (gen_permutation h))); test_comp t
+  | _ -> ()
+  in test_comp list;;*)
