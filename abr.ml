@@ -382,14 +382,14 @@ let rec searchMap compT e = match compT with
         Printf.printf "%B\n" (searchMap !(Hashtbl.find (snd c) (parenth a)) 2);;
 *)
 
-let compress_size_test tt= 
+let compress_size_test tt=
   let s = Gc.allocated_bytes () in
-  let _ = compresser tt in 
+  let _ = compresser tt in
   Gc.allocated_bytes () -. s;;
 
-let compressMap_size_test tt= 
+let compressMap_size_test tt=
   let s = Gc.allocated_bytes () in
-  let _ = compressMap tt in 
+  let _ = compressMap tt in
   Gc.allocated_bytes () -. s;;
 
 (*let x = compress_size_test (construc (gen_permutation 50000)) in Printf.printf "%f\n" x;;*)
@@ -406,3 +406,43 @@ let list = [100;150;500;750;1000;5000;8000;10000;15000;20000;25000;30000;35000;4
   | h::t -> Printf.printf "[%d] : %f\n" h (compressMap_size_test (construc (gen_permutation h))); test_comp t
   | _ -> ()
   in test_comp list;;*)
+
+
+let search_ct_time_test ct n =
+  let t = Unix.gettimeofday () in
+  let _ = search ct n in
+  Unix.gettimeofday () -. t
+
+(*Bound=max n=liste size*)
+let rec list_of_rand bound n =
+  let rec lambda b n p = match b with
+    | 0 -> []
+    | _ -> match p with
+      | [] -> []
+      | x::s -> [x] @ lambda (b-1) n s
+  in lambda bound n (gen_permutation n);;
+
+
+
+let average_time_test_ct ct n  =
+  let rec lambda ct n = match n with
+    | [] -> 0.0
+    | x::s -> (search_ct_time_test ct x) +. (lambda ct s)
+  in (lambda ct n)/.(float_of_int (List.length n))
+(*
+let average_time_test_ht ht n =
+  let rec lambda ht n = match n with
+    | [] -> 0.0
+    | x::s -> (searchComp ht x) +. (lambda ht s)
+  in (lambda ht n)/.(float_of_int (List.length n))*)
+
+let time_test n = let r = list_of_rand 50 50(*nb valeur a tester*) in
+        let mytree = construc (gen_permutation n(*taille de l'arbre*)) in
+        let comp = compresser mytree in
+          average_time_test_ct comp r;;
+
+let list = [100;150;500;750;1000;5000;8000;10000;15000;20000;25000;30000;35000;40000;50000] in
+  let rec test_comp l = match l with
+  | h::t -> Printf.printf "[%d] : %f\n" h (time_test h); test_comp t
+  | _ -> ()
+  in test_comp list;;
