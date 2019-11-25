@@ -1,7 +1,7 @@
 (*Remove l'element e de la liste l*)
 let remove e l = List.filter (fun x -> x != e) l;;
 
-(*Print la liste*)
+(*Print la liste pour des entiers*)
 let rec print_list = function
     [] -> ()
   | e::l -> print_int e ; print_string " " ; print_list l;;
@@ -12,7 +12,7 @@ let extraction_alea l p = let size = List.length l in
   let tmp = List.nth l r in
   ((remove tmp l) , (tmp :: p));;
 
-(*TEST
+(*TEST de extraction_alea
   let x = [1;2;3;4;5] in
   let tmp= extraction_alea x [] in
     print_list (fst tmp);
@@ -43,11 +43,11 @@ let gen_permutation n = let l =interval 1 n in
 
 
 (*Definition du type 'a abr*)
-type 'a abr = |Empty
-              |Node of {etq : 'a ;fg : 'a abr;fd : 'a abr};;
+type abr = |Empty
+           |Node of {etq : int ;fg : abr;fd : abr};;
 
 
-(*TEST
+(*TEST du type abr
   let x = Node {etq = 1;fg = Empty;fd = Empty} in
   match x with
   | Node(n) -> print_int n.etq
@@ -72,12 +72,12 @@ let rec inserer e abr = match abr with
     then Node {etq=n.etq;fg = (inserer e n.fg); fd = n.fd}
     else Node {etq=n.etq;fg = n.fg ; fd = (inserer e n.fd)};;
 
-(*TEST
+(*TEST de inserer
   let x = Node {etq = 1;fg = Empty;fd = Empty} in
   print_abr (inserer 2 x) ;;
 *)
 
-(*Construit l'abr a partir de la liste l*)
+(*Construit l'abr a partir de la liste d'entier l*)
 let construc l = let empt = Empty in
   let rec aux l abr = if l = []
     then abr
@@ -87,36 +87,25 @@ let construc l = let empt = Empty in
   print_abr (construc [4;2;3;8;1;9;6;7;5]);;
 *)
 
-(* Renvoi l'arbre sous forme parenthese*)
+(* Renvoi l'arbre sous forme de parentheses*)
 let parenth abr=
   let rec test tree = match tree with
     |Empty ->""
     |Node(n)->"("^(test n.fg)^")"^(test n.fd) in test abr;;
 
-(*TEST
+(*TEST de parenth
   print_string (parenth (construc [4;2;3;8;1;9;6;7;5]));;
   print_string "\n";;
 *)
+
 (*Retourne la hauteur d'un arbre*)
 let rec getHauteur abr = match abr with
   |Empty -> 0
   |Node(n) -> max (1+getHauteur n.fg) (1+getHauteur n.fd);;
 
 
-(*TEST
+(*TEST de getHauteur
   print_int (getHauteur (construc [4;2;1;3;8;6;5;7;9]));;
-*)
-
-(*Retourne un entier unique incremente a chaque appel*)
-let unique =
-  let last = ref 0 in
-  fun () -> incr last ; !last;;
-
-(*TEST
-  let one = unique ();;  (* 1 *)
-  let two = unique ();;  (* 2 *)
-  let three = unique ();;  (* 3 *)
-  print_int three;;
 *)
 
 
@@ -129,7 +118,7 @@ type comp = |Empty
             |Symbole of string * comp ref
             |NodeC of {etq : noeud list;fg : comp ref ;fd : comp ref };;
 
-(*TEST
+(*TEST des types
   let y = Couple {etq = 1;liste=["1";"2";"3"]} in
   match y with
     |Couple(n) -> print_string (List.hd n.liste)
@@ -141,7 +130,7 @@ let reset_s, generate_symbol = let c = ref 0 in
   ( function () -> c:=0),
   ( function () -> c:=!c+1; "SYMB"^(string_of_int !c) );; (*ex: SYMB1*)
 
-(*TEST
+(*TEST de generate_symbol
   let test = generate_symbol() in print_string test; let test2 = generate_symbol() in print_string test2;;
 *)
 
@@ -150,14 +139,13 @@ let reset_s, generate_symbol = let c = ref 0 in
 let createNode etq fg fd= NodeC {etq=etq;fg=fg;fd=fd};;
 
 (*TEST
-  let x = (createNode [Etq 1;Etq 3] Empty Empty 2);;
+  let x = (createNode [Etq 1;Etq 3] Empty Empty);;
 *)
 
 (*Ajoute add dans l'etiquette AU DEBUT du noeud node *)
 let addInNode node add = match node with
   |NodeC(n) -> createNode (add::n.etq) n.fg n.fd
   |_ -> Empty;;
-
 
 (*TEST
   let y = addInNode x (Etq 5);;
@@ -181,11 +169,13 @@ let mergeNodes h_nodes mot node fg fd symb =
     let newN = (createNode [node] fg fd) in (Hashtbl.add h_nodes mot (ref newN));
     (mot ,h_nodes);;
 
+(*Renvoi une ref de noeud, un symbole si s est un symbole et un NodeC sinon*)
 let creerFils h_nodes s mot= if (Str.string_match (Str.regexp "^SYMB[0-9]+") s 0)
   then ref (Symbole (s, Hashtbl.find h_nodes mot))
   else Hashtbl.find h_nodes mot;;
 
-(*Hypothese: l'arbre n'est pas vide*)
+(* Compresse le noeud d'un arbre
+Hypothese: l'arbre n'est pas vide*)
 let rec compTree  abr h_nodes lSymb = let mot = parenth abr in
   match abr with
   | Empty -> if (Hashtbl.mem h_nodes mot) then (mot, h_nodes) else begin Hashtbl.add h_nodes mot (ref Empty); (mot, h_nodes) end
@@ -195,14 +185,14 @@ let rec compTree  abr h_nodes lSymb = let mot = parenth abr in
       else if (Hashtbl.mem h_nodes mot) (*Noeud existe deja*)
       then let tmp = Hashtbl.find h_nodes mot in match !tmp with
         |NodeC(n2) ->  let _ = (match !(n2.fg) with
-            |Empty -> compTree n.fg h_nodes lSymb
-            |Symbole(s,h) -> compTree n.fg h_nodes (s::lSymb)
-            |NodeC(n3) -> compTree n.fg h_nodes lSymb) in
-          let _ = (match !(n2.fd) with
-              |Empty -> compTree n.fd h_nodes lSymb
-              |Symbole(s,h) -> compTree n.fd h_nodes (s::lSymb)
-              |NodeC(n4) -> compTree n.fd h_nodes lSymb) in
-          mergeNodes h_nodes mot (Couple{etq=n.etq; liste=lSymb}) (ref Empty) (ref Empty) (if lSymb=[] then "" else (List.hd lSymb)) (*On n'a pas besoin de savoir les fg et fd *)
+                                  |Empty -> compTree n.fg h_nodes lSymb
+                                  |Symbole(s,h) -> compTree n.fg h_nodes (s::lSymb)
+                                  |NodeC(n3) -> compTree n.fg h_nodes lSymb) in
+                          let _ = (match !(n2.fd) with
+                              |Empty -> compTree n.fd h_nodes lSymb
+                              |Symbole(s,h) -> compTree n.fd h_nodes (s::lSymb)
+                              |NodeC(n4) -> compTree n.fd h_nodes lSymb) in
+                                mergeNodes h_nodes mot (Couple{etq=n.etq; liste=lSymb}) (ref Empty) (ref Empty) (if lSymb=[] then "" else (List.hd lSymb)) (*On n'a pas besoin de savoir les fg et fd *)
         |_ -> ("Err",h_nodes)
       else (*Noeud n'existe pas*)
         let fg = compTree n.fg h_nodes (if Hashtbl.mem h_nodes (parenth n.fg) then generate_symbol()::[] else lSymb ) in
@@ -213,7 +203,7 @@ let rec compTree  abr h_nodes lSymb = let mot = parenth abr in
 let compresser abr = let nodes = Hashtbl.create (getHauteur abr) in let c = compTree abr nodes [] in !(Hashtbl.find (snd c) (parenth abr)) ;;
 
 
-(* TEST PRINT*)
+(* Print une liste en appliquant f a la liste*)
 let printList f lst =
   let rec print_elements = function
     | [] -> ()
@@ -222,13 +212,13 @@ let printList f lst =
   print_string "{";
   print_elements lst;;
 
-
+(*Affiche un noeud*)
 let print_noeud n = match n with
   |Etq(e) -> print_string "ETQ:"; print_int e
-  |Couple(c) -> print_string "{ COUPLE:"; print_int c.etq; print_string "  Symboles:"; printList print_string c.liste; print_string "} } \n"
+  |Couple(c) -> print_string "{ COUPLE:"; print_int c.etq; print_string "  Symboles:"; printList print_string c.liste; print_string "} } \n";;
 
 
-
+(*Affiche un abre compresse*)
 let rec print_compTree abr = match abr with
   | Empty -> print_string "Empty"
   | NodeC(n) -> printList print_noeud n.etq;
@@ -239,16 +229,21 @@ let rec print_compTree abr = match abr with
     print_string " }  "
   | Symbole(s,h) -> print_string "SYMB: "; print_string s(*; print_compTree !h*);;
 
-(*TEST*)
+(*TEST de l'affichage d'un arbre compressé*)
 (*
 let x = construc [1;2;3;4] in
   let y = Hashtbl.create 4 in
     let z = compTree x y [] in
-      let nodes = snd z in print_compTree !(Hashtbl.find nodes (parenth x));;*)
-(*
+      let nodes = snd z in print_compTree !(Hashtbl.find nodes (parenth x));;
+*)
+
+(*TEST de la fonction compresser
 let x = construc [4;2;3;8;1;9;6;7;5] in
   let compress = compresser x in print_compTree compress;;
 *)
+
+(*Check si e est dans la liste l
+renvoi 0 si oui,sinon -1 si e < à l'etiquette,1 sinon*)
 let rec checkList l e = match l with
   | [] -> 2
   | h::t -> match h with
@@ -270,10 +265,13 @@ let rec search compT e = match compT with
 
 
 (*TEST DE RECHERCHE*)
+(*
 let a = construc [4;2;3;8;1;9;6;7;5] in
 let b = Hashtbl.create 4 in
 let c = compTree a b [] in
 Printf.printf "%B\n" (search !(Hashtbl.find (snd c) (parenth a)) 10);;
+*)
+
 
 (*--------------------------------------- Question 2.7-----------------------------------------------------*)
 (*TYPE de l'arbre compressé map*)
@@ -327,6 +325,19 @@ let rec compTreeMap  abr h_nodes lSymb = let mot = parenth abr in
 
 let compresserMap abr = let nodes = Hashtbl.create (getHauteur abr) in let c = compTreeMap abr nodes [] in !(Hashtbl.find (snd c) (parenth abr)) ;;
 
+
+(*TEST de compression map
+  let x = construc [4;2;3;8;1;9;6;7;5] in
+  let y = getHash x in
+    let z = compTreeMap x 4 y (Hashtbl.create 4) [] in
+      let nodes = snd z in print_compTreeMap !(Hashtbl.find nodes 4);;*)
+(*
+let x = construc [4;2;3;8;1;9;6;7;5] in
+  let compress = compresserMap x in print_compTreeMap compress;;
+*)
+
+
+
 let rec print_hash h = let f x y = print_int x;printList print_string y in
   begin
     print_string "ETQ: ";
@@ -343,17 +354,16 @@ let rec print_compTreeMap abr = match abr with
     print_string " }  "
   | SymboleM(s,h) -> print_string "SYMB: "; print_string s(*; print_compTree !h*);;
 
-(*let x = construc [4;2;3;8;1;9;6;7;5] in
-  let y = getHash x in
-    let z = compTreeMap x 4 y (Hashtbl.create 4) [] in
-      let nodes = snd z in print_compTreeMap !(Hashtbl.find nodes 4);;*)
-
-(*TEST*)
+(*TEST AFFICHAGE DE LARBRE MAP*)
 (*
-let x = construc [4;2;3;8;1;9;6;7;5] in
-  let compress = compresserMap x in print_compTreeMap compress;;
+let a = construc [4;2;3;8;1;9;6;7;5] in
+  let b = Hashtbl.create 4  in
+    let c = compTreeMap a b [] in
+let nodes = snd c in print_compTreeMap !(Hashtbl.find nodes (parenth a));;
 *)
 
+
+(*Fonction de recherche dans un arbre compresse map*)
 let rec searchMap compT e = match compT with
   | EmptyM -> false
   | NodeM(n) -> if (Hashtbl.mem n.etq e) then true
@@ -364,17 +374,10 @@ let rec searchMap compT e = match compT with
   | SymboleM(n,c) -> searchMap !c e;;
 
 
-
-(*TEST AFFICHAGE DE LARBRE MAP*)
+(*TEST DE RECHERCHE DANS MAP*)
 (*
-let a = construc [4;2;3;8;1;9;6;7;5] in
-  let b = Hashtbl.create 4  in
-    let c = compTreeMap a b [] in
-let nodes = snd c in print_compTreeMap !(Hashtbl.find nodes (parenth a));;
-*)
-
-(*TEST DE COMPRESSER MAP*)
-(*
-let x = construc [4;2;3;8;1;9;6;7;5] in
-let compress = compresserMap x in print_compTreeMap compress;;
+  let a = construc [4;2;3;8;1;9;6;7;5] in
+    let b = Hashtbl.create 4 in
+      let c = compTreeMap a b [] in
+        Printf.printf "%B\n" (searchMap !(Hashtbl.find (snd c) (parenth a)) 2);;
 *)
