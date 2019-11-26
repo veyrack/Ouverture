@@ -383,6 +383,11 @@ let rec searchMap compT e = match compT with
         Printf.printf "%B\n" (searchMap !(Hashtbl.find (snd c) (parenth a)) 37500);;
 *)
 
+let compressAbr_size_test taille=
+  let s = Gc.allocated_bytes () in
+  let _ = construc (gen_permutation taille) in
+  Gc.allocated_bytes () -. s;;
+
 let compress_size_test tt=
   let s = Gc.allocated_bytes () in
   let _ = compresser tt in
@@ -395,6 +400,7 @@ let compressMap_size_test tt=
 
 (*let x = compress_size_test (construc (gen_permutation 50000)) in Printf.printf "%f\n" x;;*)
 (*let x = compressMap_size_test (construc (gen_permutation 50000)) in Printf.printf "%f\n" x;;*)
+
 (*
 let list = [100;150;500;750;1000;5000;8000;10000;15000;20000;25000;30000;35000;40000;50000] in
   let rec test_comp l = match l with
@@ -407,7 +413,11 @@ let list = [100;150;500;750;1000;5000;8000;10000;15000;20000;25000;30000;35000;4
   | h::t -> Printf.printf "[%d] : %f\n" h (compressMap_size_test (construc (gen_permutation h))); test_comp t
   | _ -> ()
   in test_comp list;;*)
-
+let list = [100;150;500;750;1000;5000;8000;10000;15000;20000;25000;30000;35000;40000;50000] in
+  let rec test_comp l = match l with
+  | h::t -> Printf.printf "[%d] : %f\n" h (compressAbr_size_test h); test_comp t
+  | _ -> ()
+  in test_comp list;;
 
 let searchComp_test abr n =
   let t = Unix.gettimeofday () in
@@ -451,9 +461,10 @@ let time_test n = let r = list_of_rand n n(*nb valeur a tester*) in
         let comp = compressMap mytree in
           average_map comp r;;*)
 
-
+(*
 let list = [5;10;20;30;50;75;100;150;500;750;1000;5000;8000;10000;15000;20000] in
   let rec test_comp l = match l with
   | h::t -> Printf.printf "[%d] : %f\n" h (time_test h); test_comp t
   | _ -> ()
   in test_comp list;;
+*)
