@@ -376,21 +376,20 @@ let rec searchMap compT e = match compT with
 
 (*TEST DE RECHERCHE DANS MAP*)
 (*
-  let a = construc (gen_permutation 50000 ) in
-    print_string "gen done";
+  let a = construc [4;2;3;8;1;9;6;7;5] in
     let b = Hashtbl.create 4 in
       let c = compTreeMap a b [] in
-        Printf.printf "%B\n" (searchMap !(Hashtbl.find (snd c) (parenth a)) 37500);;
+        Printf.printf "%B\n" (searchMap !(Hashtbl.find (snd c) (parenth a)) 2);;
 *)
 
-let compress_size_test tt=
+let compress_size_test tt= 
   let s = Gc.allocated_bytes () in
-  let _ = compresser tt in
+  let _ = compresser tt in 
   Gc.allocated_bytes () -. s;;
 
-let compressMap_size_test tt=
+let compressMap_size_test tt= 
   let s = Gc.allocated_bytes () in
-  let _ = compressMap tt in
+  let _ = compressMap tt in 
   Gc.allocated_bytes () -. s;;
 
 (*let x = compress_size_test (construc (gen_permutation 50000)) in Printf.printf "%f\n" x;;*)
@@ -409,51 +408,3 @@ let list = [100;150;500;750;1000;5000;8000;10000;15000;20000;25000;30000;35000;4
   in test_comp list;;*)
 
 
-let searchComp_test abr n =
-  let t = Unix.gettimeofday () in
-  let _ = search abr n in
-  Unix.gettimeofday () -. t
-
-
-let searchMap_test abr n =
-  let t = Unix.gettimeofday () in
-  let _ = searchMap abr n in
-  Unix.gettimeofday () -. t
-
-(*Bound=max n=list size*)
-let rec list_of_rand bound n =
-  let rec lambda b n p = match b with
-    | 0 -> []
-    | _ -> match p with
-      | [] -> []
-      | x::s -> [x] @ lambda (b-1) n s
-  in lambda bound n (gen_permutation n);;
-
-(*Tps moyen de recherche pour les arbres compresses*)
-let average_comp abr n  =
-  let rec lambda abr n = match n with
-    | [] -> 0.0
-    | x::s -> (searchComp_test abr x) +. (lambda abr s)
-  in (lambda abr n)/.(float_of_int (List.length n))
-
-let average_map abr n =
-  let rec lambda abr n = match n with
-    | [] -> 0.0
-    | x::s -> (searchMap_test abr x) +. (lambda abr s)
-  in (lambda abr n)/.(float_of_int (List.length n))
-
-let time_test n = let r = list_of_rand n n(*nb valeur a tester*) in
-        let mytree = construc (gen_permutation n(*taille de l'arbre*)) in
-        let comp = compresser mytree in
-          average_comp comp r;;
-(*let time_test n = let r = list_of_rand n n(*nb valeur a tester*) in
-        let mytree = construc (gen_permutation n(*taille de l'arbre*)) in
-        let comp = compressMap mytree in
-          average_map comp r;;*)
-
-
-let list = [5;10;20;30;50;75;100;150;500;750;1000;5000;8000;10000;15000;20000] in
-  let rec test_comp l = match l with
-  | h::t -> Printf.printf "[%d] : %f\n" h (time_test h); test_comp t
-  | _ -> ()
-  in test_comp list;;
