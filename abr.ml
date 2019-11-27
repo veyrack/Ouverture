@@ -180,7 +180,7 @@ let rec compTree  abr h_nodes lSymb = let mot = parenth abr in
   match abr with
   | Empty -> if (Hashtbl.mem h_nodes mot) then (mot, h_nodes) else begin Hashtbl.add h_nodes mot (ref Empty); (mot, h_nodes) end
   | Node(n) -> (   (*Notre ancien noeud*)
-      if (n.fg = Empty && n.fd = Empty) (*ici on traite la feuille*)
+      if (n.fg = Empty && n.fd = Empty) (*ici on traite le noeud parent de 2 feuilles*)
       then mergeNodes h_nodes mot (if lSymb = [] then Etq n.etq else Couple {etq=n.etq; liste=lSymb}) (ref Empty) (ref Empty) (if lSymb=[] then "" else (List.hd lSymb))
       else if (Hashtbl.mem h_nodes mot) (*Noeud existe deja*)
       then let tmp = Hashtbl.find h_nodes mot in match !tmp with
@@ -303,7 +303,7 @@ let rec compTreeMap  abr h_nodes lSymb = let mot = parenth abr in
   match abr with
   | Empty -> if (Hashtbl.mem h_nodes mot) then (mot, h_nodes) else begin Hashtbl.add h_nodes mot (ref EmptyM); (mot, h_nodes) end
   | Node(n) -> (   (*Notre ancien noeud*)
-      if (n.fg = Empty && n.fd = Empty) (*ici on traite la feuille*)
+      if (n.fg = Empty && n.fd = Empty) (*ici on traite le noeud parent de 2 feuilles*)
       then mergeNodesMap h_nodes mot (ref EmptyM) (ref EmptyM) lSymb n.etq
       else if (Hashtbl.mem h_nodes mot) (*Noeud existe deja*)
       then let tmp = Hashtbl.find h_nodes mot in match !tmp with
