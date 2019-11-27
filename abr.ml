@@ -521,3 +521,29 @@ let canal_entree = open_in "jeu_test/donnee100.txt";;
 let ligne1 = input_line canal_entree;;
 close_in canal_entree;;
 print_string ligne1;;*)
+
+let string_to_list s = let tmp = String.map (fun c -> if c == ',' || c =='['|| c==']' then ' ' else c) s in 
+  List.map int_of_string (Str.split (Str.regexp "[^0-9]+") tmp);;
+
+
+let rec calcul abr nbN moy = match abr with
+    | Empty -> ()
+    | Symbole(n,e) -> ()
+    | NodeC(n) -> nbN:= !nbN + 1; 
+      moy :=!moy + (List.length n.etq);
+      let _ = calcul !(n.fg) nbN moy in 
+      let _ = calcul !(n.fd) nbN moy in ();;
+
+let calculN abr = let nbN = ref 0 and moy = ref 0 in
+  let _ = calcul abr nbN moy in (!nbN,((float_of_int !moy) /. (float_of_int !nbN)));;
+
+
+let test_files = ["jeu_test/donnee100.txt";"jeu_test/donnee150.txt";"jeu_test/donnee500.txt";"jeu_test/donnee750.txt";"jeu_test/donnee1000.txt";"jeu_test/donnee10000.txt";"jeu_test/donnee50000.txt"];;
+let rec nb_noeud_test liste = match liste with
+| h::t -> let canal_entree = open_in h in
+  let ligne = input_line canal_entree in
+  close_in canal_entree;
+  let res = calculN (compresser (construc (string_to_list ligne))) in Printf.printf "nb noeud : %d\nnb moy par noeud : %f\n" (fst res) (snd res);nb_noeud_test t
+| _ -> ();;
+
+nb_noeud_test test_files;;
